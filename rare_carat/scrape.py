@@ -15,7 +15,6 @@ import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable
-from urllib.parse import urljoin
 
 from playwright.async_api import Browser, Page, TimeoutError as PlaywrightTimeoutError, async_playwright
 
@@ -25,6 +24,7 @@ DEFAULT_SEARCH_URL = (
     "c1da7094-3c13-4a3f-8dc6-6ac2a9924047?shape=round,oval"
 )
 DIAMOND_PATH = re.compile(r"^/diamond/(\d+)(?:/|$)")
+CARD_IMAGE_ID = re.compile(r"^diamond-image(\d+)$")
 LG_CODE = re.compile(r"[?&]r=(LG_\d+)\b", re.IGNORECASE)
 
 
@@ -38,23 +38,27 @@ class RareCaratDiamond:
 
 
 async def _scroll_for_diamond_urls(page: Page, limit: int) -> list[str]:
-    """Scroll the result list until ``limit`` unique public diamond URLs appear."""
+    """Scroll until ``limit`` card IDs are loaded and form their detail URLs.
+
+    The current Rare Carat result cards are clickable ``div`` elements, not
+    links. Their image has an ID like ``diamond-image153132780``.
+    """
 
     urls: dict[str, None] = {}
     unchanged_rounds = 0
 
     for _ in range(80):
-        hrefs = await page.locator('a[href*="/diamond/"]').evaluate_all(
-            "links => links.map(link => link.getAttribute('href'))"
+        image_ids = await page.locator('img[id^="diamond-image"]').evaluate_all(
+            "images => images.map(image => image.id)"
         )
-        for href in hrefs:
-            if not href:
+        for image_id in image_ids:
+            match = CARD_IMAGE_ID.match(image_id)
+            if not match:
                 continue
-            absolute_url = urljoin(page.url, href).split("?")[0]
-            if DIAMOND_PATH.match(absolute_url.removeprefix("https://www.rarecarat.com")):
-                urls.setdefault(absolute_url, None)
-                if len(urls) >= limit:
-                    return list(urls)
+            diamond_url = f"https://www.rarecarat.com/diamond/{match.group(1)}"
+            urls.setdefault(diamond_url, None)
+            if len(urls) >= limit:
+                return list(urls)
 
         old_height = await page.evaluate("document.body.scrollHeight")
         await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
@@ -71,9 +75,7 @@ async def _wait_for_diamond_results(page: Page, debug_dir: Path | None) -> None:
     """Wait for result links, retaining useful evidence if the site shows another page."""
 
     try:
-        # Search cards can initially be attached inside a hidden loading container.
-        # Waiting for ``visible`` causes a false timeout in that state.
-        await page.wait_for_selector('a[href*="/diamond/"]', state="attached", timeout=45_000)
+        await page.wait_for_selector('img[id^="diamond-image"]', state="attached", timeout=45_000)
     except PlaywrightTimeoutError as error:
         title = await page.title()
         if debug_dir:
