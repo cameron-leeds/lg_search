@@ -51,6 +51,17 @@ service returned a diamond URL.
 python aurelinne/search.py --input rare_carat_lg_codes.json --output aurelinne_matches.json
 ```
 
+## Ritani lookup
+
+Ritani does not expose a public certificate lookup. This collector uses the
+same Google search method used manually, then saves only matching Ritani
+product links. Google may ask you to verify that you are human, so begin with
+a visible browser and a small batch.
+
+```powershell
+python ritani/scrape.py --headed --input rare_carat_lg_codes.json --output ritani_matches.json
+```
+
 ultimately rare carat is the winner, but want to get the best diamond by finding a matching LG number from the other 2
 
 Original search on rare carat - https://www.rarecarat.com/diamond-search/c1da7094-3c13-4a3f-8dc6-6ac2a9924047?shape=round,oval
