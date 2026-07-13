@@ -9,14 +9,14 @@ are the stable values to look up at Calavera and Aurelinne.
 Install the dependency and Chromium once:
 
 ```powershell
-py -m pip install -r requirements.txt
-py -m playwright install chromium
+python -m pip install -r requirements.txt
+python -m playwright install chromium
 ```
 
 Then collect the top 100 results from the configured search:
 
 ```powershell
-py main.py --output rare_carat_lg_codes.json
+python main.py --output rare_carat_lg_codes.json
 ```
 
 The output contains `rare_carat_id`, its detail-page URL, and `lg_code`. A
@@ -28,7 +28,7 @@ and `.html`. Run in a visible browser to inspect and handle any normal consent
 prompt:
 
 ```powershell
-py main.py --headed --limit 5
+python main.py --headed --limit 5
 ```
 
 ## Calavera lookup
@@ -38,7 +38,17 @@ automatically converts `LG_811684624` to Calavera's `LG811684624` search term
 and saves whether a product was found and its product URL.
 
 ```powershell
-py calavera/search.py --input rare_carat_lg_codes.json --output calavera_matches.json
+python calavera/search.py --input rare_carat_lg_codes.json --output calavera_matches.json
+```
+
+## Aurelinne lookup
+
+Aurelinne's certificate lookup searches its public certificate-search service.
+It also receives each LG code without its underscore and records whether the
+service returned a diamond URL.
+
+```powershell
+python aurelinne/search.py --input rare_carat_lg_codes.json --output aurelinne_matches.json
 ```
 
 ultimately rare carat is the winner, but want to get the best diamond by finding a matching LG number from the other 2
