@@ -1,20 +1,5 @@
 [
   {
-    "rare_carat_id": "156101312",
-    "rare_carat_url": "https://www.rarecarat.com/diamond/156101312",
-    "lg_code": "LG_768694303"
-  },
-  {
-    "rare_carat_id": "153512583",
-    "rare_carat_url": "https://www.rarecarat.com/diamond/153512583",
-    "lg_code": "LG_774691953"
-  },
-  {
-    "rare_carat_id": "153132802",
-    "rare_carat_url": "https://www.rarecarat.com/diamond/153132802",
-    "lg_code": "LG_762551335"
-  },
-  {
     "rare_carat_id": "154093335",
     "rare_carat_url": "https://www.rarecarat.com/diamond/154093335",
     "lg_code": "LG_779606666"
@@ -23,5 +8,25 @@
     "rare_carat_id": "153871262",
     "rare_carat_url": "https://www.rarecarat.com/diamond/153871262",
     "lg_code": "LG_777628822"
+  },
+  {
+    "rare_carat_id": "153659444",
+    "rare_carat_url": "https://www.rarecarat.com/diamond/153659444",
+    "lg_code": "LG_774696219"
+  },
+  {
+    "rare_carat_id": "153668529",
+    "rare_carat_url": "https://www.rarecarat.com/diamond/153668529",
+    "lg_code": "LG_776678381"
+  },
+  {
+    "rare_carat_id": "155573283",
+    "rare_carat_url": "https://www.rarecarat.com/diamond/155573283",
+    "lg_code": "LG_791647331"
+  },
+  {
+    "rare_carat_id": "157920955",
+    "rare_carat_url": "https://www.rarecarat.com/diamond/157920955",
+    "lg_code": "LG_809614045"
   }
 ]

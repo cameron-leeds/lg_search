@@ -45,12 +45,17 @@ async def _scroll_for_diamond_urls(page: Page, limit: int) -> list[str]:
     """
 
     urls: dict[str, None] = {}
-    unchanged_rounds = 0
+    no_new_cards_rounds = 0
 
-    for _ in range(80):
+    # The result grid uses lazy ``q-intersection`` cards. Its document height
+    # often stays fixed while the next cards replace placeholders, so scroll in
+    # viewport-sized steps rather than jumping to the bottom or using height as
+    # the completion condition.
+    for _ in range(160):
         image_ids = await page.locator('img[id^="diamond-image"]').evaluate_all(
             "images => images.map(image => image.id)"
         )
+        count_before = len(urls)
         for image_id in image_ids:
             match = CARD_IMAGE_ID.match(image_id)
             if not match:
@@ -60,12 +65,12 @@ async def _scroll_for_diamond_urls(page: Page, limit: int) -> list[str]:
             if len(urls) >= limit:
                 return list(urls)
 
-        old_height = await page.evaluate("document.body.scrollHeight")
-        await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-        await page.wait_for_timeout(1_000)
-        new_height = await page.evaluate("document.body.scrollHeight")
-        unchanged_rounds = unchanged_rounds + 1 if new_height == old_height else 0
-        if unchanged_rounds >= 3:
+        no_new_cards_rounds = no_new_cards_rounds + 1 if len(urls) == count_before else 0
+        await page.evaluate("window.scrollBy(0, Math.round(window.innerHeight * 0.8))")
+        await page.wait_for_timeout(800)
+        # Ten whole viewport moves without a new card means the results are
+        # exhausted. This still gives intersection observers time to hydrate.
+        if no_new_cards_rounds >= 10:
             break
 
     return list(urls)
