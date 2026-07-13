@@ -1,81 +1,142 @@
-from scrapy import Request, Spider
-from scrapers.items import HotelItemLoader, ReviewItemLoader
-from scrapers.utils import print_failure
+"""Collect IGI lab-report codes for diamonds returned by a Rare Carat search.
+
+Rare Carat renders the search results in the browser, so this module uses
+Playwright rather than trying to guess an internal API.  It only reads public
+pages and deliberately visits the detail pages at a modest rate.
+"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import csv
+import json
+import re
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Iterable
+from urllib.parse import urljoin
+
+from playwright.async_api import Browser, Page, TimeoutError as PlaywrightTimeoutError, async_playwright
 
 
-class RareCaratSpider(Spider):
-    """This class manages all the logic required for scraping the Rare Carat website.
+DEFAULT_SEARCH_URL = (
+    "https://www.rarecarat.com/diamond-search/"
+    "c1da7094-3c13-4a3f-8dc6-6ac2a9924047?shape=round,oval"
+)
+DIAMOND_PATH = re.compile(r"^/diamond/(\d+)(?:/|$)")
+LG_CODE = re.compile(r"[?&]r=(LG_\d+)\b", re.IGNORECASE)
 
-    Attributes:
-        name (str): The unique name of the spider.
-        start_url (str): Root of the website and first URL to scrape.
-        custom_settings (dict): Custom settings for the scraper
+
+@dataclass(frozen=True)
+class RareCaratDiamond:
+    """A Rare Carat listing and the certificate number used for matching."""
+
+    rare_carat_id: str
+    rare_carat_url: str
+    lg_code: str | None
+
+
+async def _scroll_for_diamond_urls(page: Page, limit: int) -> list[str]:
+    """Scroll the result list until ``limit`` unique public diamond URLs appear."""
+
+    urls: dict[str, None] = {}
+    unchanged_rounds = 0
+
+    for _ in range(80):
+        hrefs = await page.locator('a[href*="/diamond/"]').evaluate_all(
+            "links => links.map(link => link.getAttribute('href'))"
+        )
+        for href in hrefs:
+            if not href:
+                continue
+            absolute_url = urljoin(page.url, href).split("?")[0]
+            if DIAMOND_PATH.match(absolute_url.removeprefix("https://www.rarecarat.com")):
+                urls.setdefault(absolute_url, None)
+                if len(urls) >= limit:
+                    return list(urls)
+
+        old_height = await page.evaluate("document.body.scrollHeight")
+        await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+        await page.wait_for_timeout(1_000)
+        new_height = await page.evaluate("document.body.scrollHeight")
+        unchanged_rounds = unchanged_rounds + 1 if new_height == old_height else 0
+        if unchanged_rounds >= 3:
+            break
+
+    return list(urls)
+
+
+async def _extract_lg_code(browser: Browser, diamond_url: str) -> RareCaratDiamond:
+    """Open one diamond page and get the ``LG_`` code from its IGI link."""
+
+    page = await browser.new_page()
+    try:
+        await page.goto(diamond_url, wait_until="domcontentloaded", timeout=45_000)
+        # The certificate section can be hydrated after the initial HTML.
+        try:
+            await page.wait_for_selector('a[href*="igi.org/reports/verify-your-report"]', timeout=12_000)
+        except PlaywrightTimeoutError:
+            pass
+        match = LG_CODE.search(await page.content())
+        diamond_id = DIAMOND_PATH.search(page.url.removeprefix("https://www.rarecarat.com"))
+        if not diamond_id:
+            raise ValueError(f"Unexpected Rare Carat diamond URL: {page.url}")
+        return RareCaratDiamond(diamond_id.group(1), diamond_url, match.group(1).upper() if match else None)
+    finally:
+        await page.close()
+
+
+async def collect_lg_codes(search_url: str = DEFAULT_SEARCH_URL, limit: int = 100) -> list[RareCaratDiamond]:
+    """Return up to ``limit`` top search results, including their IGI ``LG_`` code.
+
+    Results with a missing code are retained so a UI or caller can flag them
+    instead of silently losing a listing.
     """
 
-    name = "rare_carat"
+    if limit < 1:
+        raise ValueError("limit must be at least 1")
 
-    start_url = "https://www.rarecarat.com/diamond-search/02851e61-af1c-499f-a2a5-2391f95ff948?shape=round,oval"
+    async with async_playwright() as playwright:
+        browser = await playwright.chromium.launch(headless=True)
+        try:
+            search_page = await browser.new_page()
+            await search_page.goto(search_url, wait_until="domcontentloaded", timeout=45_000)
+            await search_page.wait_for_selector('a[href*="/diamond/"]', timeout=30_000)
+            diamond_urls = await _scroll_for_diamond_urls(search_page, limit)
+            await search_page.close()
 
-    custom_settings = {
-        "DEFAULT_REQUEST_HEADERS": {
-            "Connection": "close",
-        },
+            # Keeping this sequential is polite to the site and makes failures easier to retry.
+            return [await _extract_lg_code(browser, url) for url in diamond_urls[:limit]]
+        finally:
+            await browser.close()
 
-        "DOWNLOADER_MIDDLEWARES": {
-            'scrapy.downloadermiddlewares.retry.RetryMiddleware': None,
-            'scrapers.middlewares.retry.RetryMiddleware': 550,
-        },
-    }
 
-    def start_requests(self):
-        """This method start 10 separate sessions on the homepage, one per page."""
-        for page in range(1, 10):
-            yield Request(
-                url=self.start_url,
-                callback=self.parse,
-                errback=self.errback,
-                dont_filter=True,
-                meta=dict(
-                    page=page,
-                    cookiejar="jar%d" % page,
-                ),
-            )
+def write_results(results: Iterable[RareCaratDiamond], output: Path) -> None:
+    """Write results as JSON or CSV, selected from the output filename suffix."""
 
-    def parse(self, response):
-        """After accessing the website's homepage, we retrieve the list of diamonds from page X."""
-        yield Request(
-            url=response.urljoin("diamonds?page=%d" % response.meta['page']),
-            callback=self.parse_listing,
-            errback=self.errback,
-            meta=response.meta,
-        )
+    records = [asdict(result) for result in results]
+    output.parent.mkdir(parents=True, exist_ok=True)
+    if output.suffix.lower() == ".csv":
+        with output.open("w", newline="", encoding="utf-8") as file:
+            writer = csv.DictWriter(file, fieldnames=["rare_carat_id", "rare_carat_url", "lg_code"])
+            writer.writeheader()
+            writer.writerows(records)
+    else:
+        output.write_text(json.dumps(records, indent=2) + "\n", encoding="utf-8")
 
-    def parse_listing(self, response):
-        """This method parses the list of diamonds from page X."""
-        for el in response.css('.diamond-link'):
-            yield response.follow(
-                url=el,
-                callback=self.parse_diamond,
-                errback=self.errback,
-                meta=response.meta,
-            )
 
-    def parse_diamond(self, response):
-        """This method parses diamond details such as name, email, and reviews."""
-        reviews = [self.get_review(review_el) for review_el in response.css('.diamond-review')]
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Collect Rare Carat diamond IGI LG codes.")
+    parser.add_argument("--search-url", default=DEFAULT_SEARCH_URL)
+    parser.add_argument("--limit", type=int, default=100)
+    parser.add_argument("--output", type=Path, default=Path("rare_carat_lg_codes.json"))
+    args = parser.parse_args()
+    results = asyncio.run(collect_lg_codes(args.search_url, args.limit))
+    write_results(results, args.output)
+    found = sum(result.lg_code is not None for result in results)
+    print(f"Saved {len(results)} listings ({found} LG codes) to {args.output}")
 
-        diamond = DiamondItemLoader(response=response)
-        diamond.add_css('name', '.diamond-name::text')
-        diamond.add_css('email', '.diamond-email::text')
-        diamond.add_value('reviews', reviews)
-        return diamond.load_item()
 
-    def get_review(self, review_el):
-        """This method extracts rating from a review"""
-        review = ReviewItemLoader(selector=review_el)
-        review.add_css('rating', '.review-rating::text')
-        return review.load_item()
-
-    def errback(self, failure):
-        """This method handles and logs errors and is invoked with each request."""
-        print_failure(self.logger, failure)
+if __name__ == "__main__":
+    main()

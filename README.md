@@ -1,6 +1,27 @@
 # lg_search
 
-i'm working on searching through these 3 sites
+This starts from a Rare Carat diamond search, gets the first 100 listings, and
+extracts each public IGI certificate identifier (`LG_...`). Those identifiers
+are the stable values to look up at Calavera and Aurelinne.
+
+## Rare Carat collector
+
+Install the dependency and Chromium once:
+
+```powershell
+py -m pip install -r requirements.txt
+py -m playwright install chromium
+```
+
+Then collect the top 100 results from the configured search:
+
+```powershell
+py main.py --output rare_carat_lg_codes.json
+```
+
+The output contains `rare_carat_id`, its detail-page URL, and `lg_code`. A
+missing `lg_code` is retained as `null` for review. Use `--output results.csv`
+to write CSV instead, or pass a different `--search-url` and `--limit`.
 
 ultimately rare carat is the winner, but want to get the best diamond by finding a matching LG number from the other 2
 
