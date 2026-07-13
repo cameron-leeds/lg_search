@@ -45,6 +45,62 @@ ultimately rare carat is the winner, but want to get the best diamond by finding
 
 Original search on rare carat - https://www.rarecarat.com/diamond-search/c1da7094-3c13-4a3f-8dc6-6ac2a9924047?shape=round,oval
 
+Oval - https://www.rarecarat.com/diamond-search/5ab45692-b99c-40a4-97f3-5ee6a92d0873?shape=oval
+Round - https://www.rarecarat.com/diamond-search/15376876-7977-4b55-a76e-6f14b38e3161?shape=round
+
+Criteria: 
+Round Diamond Cheat Sheet
+Use these exact settings to get a perfectly proportioned, incredibly fiery round diamond.
+
+Core Filters
+Carat: 2.00 to 3.00
+
+Color: D or E (Icy white)
+
+Clarity: VS1 or VVS2 (100% eye-clean)
+
+Fluorescence: None
+
+Cut: Rare Carat Ideal
+
+Polish & Symmetry: Excellent
+
+Advanced Filters
+Table: 55% to 57%
+
+Depth: 61% to 62.5%
+
+Crown Angle: 34° to 35°
+
+Pavilion Angle: 40.6° to 41.0°
+
+Girdle: Thin, Med, or Sli. Thick
+
+🥚 Oval Diamond Cheat Sheet
+Since ovals don't have an official "Cut" grade, these exact proportions are crucial to ensure a beautiful shape and minimize the dark "bowtie" effect.
+
+Core Filters
+Carat: 2.00 to 3.00
+
+Color: D or E (Icy white)
+
+Clarity: VS1 or VVS2 (100% eye-clean)
+
+Fluorescence: None
+
+Polish & Symmetry: Excellent
+
+Advanced Filters
+L/W Ratio: 1.40 to 1.45 (The ideal classic oval silhouette)
+
+Table: 56% to 60%
+
+Depth: 60% to 62%
+
+Girdle: Thin, Med, or Sli. Thick
+
+🔍 Final Inspection Tip: When viewing the 360° video of your top choices, check the grading report. If it's a CVD diamond, make sure it doesn't look blurry or grainy. If it's an HPHT diamond, make sure it doesn't have a faint blue tint.
+
 lookups on the other 2 sites
 
 https://aurelinne.com/pages/lab-grown - this one is trickier as it's all in the UI
