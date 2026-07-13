@@ -67,6 +67,28 @@ async def _scroll_for_diamond_urls(page: Page, limit: int) -> list[str]:
     return list(urls)
 
 
+async def _wait_for_diamond_results(page: Page, debug_dir: Path | None) -> None:
+    """Wait for result links, retaining useful evidence if the site shows another page."""
+
+    try:
+        # Search cards can initially be attached inside a hidden loading container.
+        # Waiting for ``visible`` causes a false timeout in that state.
+        await page.wait_for_selector('a[href*="/diamond/"]', state="attached", timeout=45_000)
+    except PlaywrightTimeoutError as error:
+        title = await page.title()
+        if debug_dir:
+            debug_dir.mkdir(parents=True, exist_ok=True)
+            await page.screenshot(path=debug_dir / "rare_carat_search_failure.png", full_page=True)
+            (debug_dir / "rare_carat_search_failure.html").write_text(
+                await page.content(), encoding="utf-8"
+            )
+        saved = f" Review {debug_dir} for a screenshot and HTML capture." if debug_dir else ""
+        raise RuntimeError(
+            f"Rare Carat returned no diamond links after 45 seconds (title: {title!r}; URL: {page.url})."
+            " It may be showing a consent, verification, or error page." + saved
+        ) from error
+
+
 async def _extract_lg_code(browser: Browser, diamond_url: str) -> RareCaratDiamond:
     """Open one diamond page and get the ``LG_`` code from its IGI link."""
 
@@ -87,7 +109,13 @@ async def _extract_lg_code(browser: Browser, diamond_url: str) -> RareCaratDiamo
         await page.close()
 
 
-async def collect_lg_codes(search_url: str = DEFAULT_SEARCH_URL, limit: int = 100) -> list[RareCaratDiamond]:
+async def collect_lg_codes(
+    search_url: str = DEFAULT_SEARCH_URL,
+    limit: int = 100,
+    *,
+    headless: bool = True,
+    debug_dir: Path | None = Path("debug"),
+) -> list[RareCaratDiamond]:
     """Return up to ``limit`` top search results, including their IGI ``LG_`` code.
 
     Results with a missing code are retained so a UI or caller can flag them
@@ -98,11 +126,11 @@ async def collect_lg_codes(search_url: str = DEFAULT_SEARCH_URL, limit: int = 10
         raise ValueError("limit must be at least 1")
 
     async with async_playwright() as playwright:
-        browser = await playwright.chromium.launch(headless=True)
+        browser = await playwright.chromium.launch(headless=headless)
         try:
             search_page = await browser.new_page()
             await search_page.goto(search_url, wait_until="domcontentloaded", timeout=45_000)
-            await search_page.wait_for_selector('a[href*="/diamond/"]', timeout=30_000)
+            await _wait_for_diamond_results(search_page, debug_dir)
             diamond_urls = await _scroll_for_diamond_urls(search_page, limit)
             await search_page.close()
 
@@ -131,8 +159,17 @@ def main() -> None:
     parser.add_argument("--search-url", default=DEFAULT_SEARCH_URL)
     parser.add_argument("--limit", type=int, default=100)
     parser.add_argument("--output", type=Path, default=Path("rare_carat_lg_codes.json"))
+    parser.add_argument("--headed", action="store_true", help="Show Chromium while the collector runs.")
+    parser.add_argument(
+        "--debug-dir",
+        type=Path,
+        default=Path("debug"),
+        help="Folder for a screenshot and HTML if search results do not load (default: debug).",
+    )
     args = parser.parse_args()
-    results = asyncio.run(collect_lg_codes(args.search_url, args.limit))
+    results = asyncio.run(
+        collect_lg_codes(args.search_url, args.limit, headless=not args.headed, debug_dir=args.debug_dir)
+    )
     write_results(results, args.output)
     found = sum(result.lg_code is not None for result in results)
     print(f"Saved {len(results)} listings ({found} LG codes) to {args.output}")

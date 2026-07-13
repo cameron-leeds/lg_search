@@ -23,6 +23,14 @@ The output contains `rare_carat_id`, its detail-page URL, and `lg_code`. A
 missing `lg_code` is retained as `null` for review. Use `--output results.csv`
 to write CSV instead, or pass a different `--search-url` and `--limit`.
 
+If it reports that no diamond links loaded, it saves `debug/rare_carat_search_failure.png`
+and `.html`. Run in a visible browser to inspect and handle any normal consent
+prompt:
+
+```powershell
+py main.py --headed --limit 5
+```
+
 ultimately rare carat is the winner, but want to get the best diamond by finding a matching LG number from the other 2
 
 Original search on rare carat - https://www.rarecarat.com/diamond-search/c1da7094-3c13-4a3f-8dc6-6ac2a9924047?shape=round,oval
