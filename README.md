@@ -31,6 +31,16 @@ prompt:
 py main.py --headed --limit 5
 ```
 
+## Calavera lookup
+
+Use the Rare Carat output to search Calavera by certificate number. The script
+automatically converts `LG_811684624` to Calavera's `LG811684624` search term
+and saves whether a product was found and its product URL.
+
+```powershell
+py calavera/search.py --input rare_carat_lg_codes.json --output calavera_matches.json
+```
+
 ultimately rare carat is the winner, but want to get the best diamond by finding a matching LG number from the other 2
 
 Original search on rare carat - https://www.rarecarat.com/diamond-search/c1da7094-3c13-4a3f-8dc6-6ac2a9924047?shape=round,oval
