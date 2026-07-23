@@ -21,7 +21,7 @@ from playwright.async_api import Browser, Page, TimeoutError as PlaywrightTimeou
 
 DEFAULT_SEARCH_URL = (
     "https://www.rarecarat.com/diamond-search/"
-    "c1da7094-3c13-4a3f-8dc6-6ac2a9924047?shape=round,oval"
+    "15376876-7977-4b55-a76e-6f14b38e3161?shape=round"
 )
 DIAMOND_PATH = re.compile(r"^/diamond/(\d+)(?:/|$)")
 CARD_IMAGE_ID = re.compile(r"^diamond-image(\d+)$")
