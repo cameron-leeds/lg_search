@@ -38,7 +38,8 @@ automatically converts `LG_811684624` to Calavera's `LG811684624` search term
 and saves whether a product was found and its product URL.
 
 ```powershell
-python calavera/search.py --input rare_carat_lg_codes.json --output calavera_matches.json
+python sites/calavera/search.py --input rare_carat_lg_codes.json --output calavera_matches.json
+python .\sites\calavera\search.py --input .\rare_carat_lg_codes.json --output .\calavera_matches.json
 ```
 
 ## Aurelinne lookup
@@ -47,8 +48,11 @@ Aurelinne's certificate lookup searches its public certificate-search service.
 It also receives each LG code without its underscore and records whether the
 service returned a diamond URL.
 
+https://aurelinne.com/pages/lab-grown?activeTab=Lab+Grown&queryLabGrown=true&shapes=round&carats_min=2&carats_max=3&color_min=E&color_max=D&clarity_min=VS1&clarity_max=FL&cut_min=ID&cut_max=ID&polish=EX&symmetry=EX&flouresence=NON&table_percentage_min=55&table_percentage_max=57&price_min=1&price_max=1207
+
 ```powershell
-python aurelinne/search.py --input rare_carat_lg_codes.json --output aurelinne_matches.json
+python sites/aurelinne/search.py --input rare_carat_lg_codes.json --output aurelinne_matches.json
+python .\sites\aurelinne\search.py --input .\rare_carat_lg_codes.json --output .\aurelinne_matches.json
 ```
 
 ## Ritani lookup
@@ -56,10 +60,11 @@ python aurelinne/search.py --input rare_carat_lg_codes.json --output aurelinne_m
 Ritani does not expose a public certificate lookup. This collector uses the
 same Google search method used manually, then saves only matching Ritani
 product links. Google may ask you to verify that you are human, so begin with
-a visible browser and a small batch.
+a visible browser and a small batch. This one is a pita since it requires a human to go through the recaptcha stuff
 
 ```powershell
-python ritani/scrape.py --headed --input rare_carat_lg_codes.json --output ritani_matches.json
+python sites/ritani/scrape.py --headed --input rare_carat_lg_codes.json --output ritani_matches.json
+python .\sites\ritani\scrape.py --headed --input .\rare_carat_lg_codes.json --output .\ritani_matches.json
 ```
 
 ultimately rare carat is the winner, but want to get the best diamond by finding a matching LG number from the other 2
@@ -144,3 +149,7 @@ https://www.rarecarat.com/setting/170-Presentation-6-Prong-Solitaire-Engagement-
 Total ring will be 936 plus tax. Free shipping. The diamond alone was twice that price originally on rarecarat.com!
 
 Hope this helps.
+
+Helpful tools
+
+https://www.diamondscreener.com/cut-estimator/
